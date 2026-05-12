@@ -1,0 +1,187 @@
+/* =========================
+   Expense Trend Card
+========================= */
+
+.expense-trend-card{
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  border: 1px solid #edf1f7;
+  min-height: auto;
+}
+
+/* =========================
+   Header
+========================= */
+
+.trend-header{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.trend-header h6{
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a237e;
+}
+
+.trend-header h6 svg{
+  font-size: 20px;
+}
+
+.trend-badge{
+  background: #eef2ff;
+  color: #1a237e;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* =========================
+   Chart
+========================= */
+
+.trend-chart-wrapper{
+  overflow-x: auto;
+  padding-bottom: 10px;
+  margin-top: 10px;
+}
+
+.trend-chart{
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 28px;
+  min-height: 260px;   /* was 320px */
+  min-width: max-content;
+  padding-top: 20px;
+}
+
+/* =========================
+   Each Item
+========================= */
+
+.trend-item{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 75px;
+}
+
+/* =========================
+   Value
+========================= */
+
+.trend-value{
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1a237e;
+  background: #f4f6ff;
+  padding: 5px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(26,35,126,0.08);
+}
+
+/* =========================
+   Bar
+========================= */
+
+.trend-bar{
+  width: 48px;
+  min-height: 6px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #5c6bc0 0%,
+      #3949ab 45%,
+      #1a237e 100%
+    );
+
+  border-radius: 18px 18px 6px 6px;
+
+  box-shadow:
+    0 10px 18px rgba(26,35,126,0.20);
+
+  transition:
+    all 0.35s ease;
+    
+  position: relative;
+}
+
+.trend-bar:hover{
+  transform:
+    translateY(-6px)
+    scale(1.04);
+
+  box-shadow:
+    0 16px 28px rgba(26,35,126,0.30);
+}
+
+/* Glow effect */
+
+.trend-bar::before{
+  content: "";
+
+  position: absolute;
+
+  top: 8px;
+  left: 8px;
+  right: 8px;
+
+  height: 30%;
+
+  border-radius: 20px;
+
+  background:
+    rgba(255,255,255,0.28);
+}
+
+/* =========================
+   Month
+========================= */
+
+.trend-month{
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  text-align: center;
+}
+
+/* =========================
+   Mobile
+========================= */
+
+@media (max-width: 768px){
+
+  .expense-trend-card{
+    padding: 18px;
+  }
+
+  .trend-chart{
+    gap: 18px;
+  }
+
+  .trend-bar{
+    width: 40px;
+  }
+
+  .trend-item{
+    min-width: 65px;
+  }
+
+}
