@@ -1,0 +1,3 @@
+backend/.env
+backend/google-credentials.json
+backend/oauth-credentials.json
