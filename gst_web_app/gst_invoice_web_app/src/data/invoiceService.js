@@ -47,12 +47,12 @@ export const updateInvoiceStatusAPI = async (id, status) => {
 
 // Open PDF preview in new tab
 export const previewInvoicePDF = (id) => {
-  window.open(`http://localhost:5000/api/pdf/${id}`, "_blank");
+  window.open(`https://backend-msas.onrender.com/api/pdf/${id}`, "_blank");
 };
 
 // Download PDF
 export const downloadInvoicePDF = async (id, invoiceNumber) => {
-  const res = await fetch(`http://localhost:5000/api/pdf/${id}`);
+  const res = await fetch(`https://backend-msas.onrender.com/api/pdf/${id}`);
   const blob = await res.blob();
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");

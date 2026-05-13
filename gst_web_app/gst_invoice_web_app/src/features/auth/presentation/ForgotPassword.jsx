@@ -22,7 +22,7 @@ function ForgotPassword() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/verify-username", {
+      const res = await fetch("https://backend-msas.onrender.com/verify-username", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username })
@@ -62,7 +62,7 @@ function ForgotPassword() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/reset-password", {
+      const res = await fetch("https://backend-msas.onrender.com/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, newPassword })

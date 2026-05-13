@@ -59,7 +59,7 @@ const SERVICE_CATALOGUE = [
   { name: "Custom",                 sac_code: "",        price: 0    },
 ];
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "https://backend-msas.onrender.com";
 
 function AdminPage() {
   const navigate    = useNavigate();
@@ -109,7 +109,7 @@ const fetchBackupHistory = async () => {
   setHistoryLoading(true);
   try {
     const token = localStorage.getItem("token");
-    const res   = await fetch("http://localhost:5000/api/backup/history", {
+    const res   = await fetch(`${BASE_URL}/api/backup/history`, {
       headers: { "Authorization": `Bearer ${token}` }
     });
     const data = await res.json();
@@ -126,7 +126,7 @@ const handleManualBackup = async () => {
   setBackupMsg(null);
   try {
     const token = localStorage.getItem("token");
-    const res   = await fetch("http://localhost:5000/api/backup/manual", {
+    const res   = await fetch(`${BASE_URL}/api/backup/manual`, {
       method:  "POST",
       headers: {
         "Content-Type":  "application/json",
