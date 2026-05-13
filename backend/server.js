@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 const express = require("express");
 const cors    = require("cors");
 
@@ -25,6 +25,11 @@ app.get("/", (req, res) => res.send("GST Backend Running ✅"));
 app.post("/login",           authRoutes.login);
 app.post("/verify-username", authRoutes.verifyUsername);
 app.post("/reset-password",  authRoutes.resetPassword);
+
+// Backward-compatible auth routes for older frontend builds
+app.post("/api/login",           authRoutes.login);
+app.post("/api/verify-username", authRoutes.verifyUsername);
+app.post("/api/reset-password",  authRoutes.resetPassword);
 
 app.use("/api/email", emailRoutes); 
 
