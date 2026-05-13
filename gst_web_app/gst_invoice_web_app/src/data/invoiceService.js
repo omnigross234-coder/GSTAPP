@@ -1,5 +1,5 @@
 
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "https://backend-msas.onrender.com/api";
 
 // Save new invoice
 export const saveInvoiceAPI = async (data) => {

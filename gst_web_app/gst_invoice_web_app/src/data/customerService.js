@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "https://backend-msas.onrender.com/api"; // Update with your backend URL
 
 export const fetchCustomersAPI = async () => {
   const res = await fetch(`${BASE_URL}/customers`);
