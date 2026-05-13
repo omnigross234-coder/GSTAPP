@@ -12,7 +12,11 @@ const login = (req, res) => {
 
   const sql = "SELECT * FROM users WHERE username = ? AND password = ?";
   db.query(sql, [username, password], (err, result) => {
-    if (err) return res.status(500).json({ error: "DB error" });
+    if (err) {
+      console.error("Login DB error:", err);
+      return res.status(500).json({ error: "DB error" });
+    }
+
     if (result.length === 0) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
@@ -24,11 +28,22 @@ const login = (req, res) => {
       return res.status(403).json({ error: "Account is deactivated. Contact admin." });
     }
 
-    const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "8h" }
-    );
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is missing");
+      return res.status(500).json({ error: "Server configuration error" });
+    }
+
+    let token;
+    try {
+      token = jwt.sign(
+        { id: user.id, username: user.username, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: "8h" }
+      );
+    } catch (err) {
+      console.error("JWT sign error:", err);
+      return res.status(500).json({ error: "Token creation failed" });
+    }
 
     res.json({
       message: "Login successful",
