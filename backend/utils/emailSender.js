@@ -177,6 +177,17 @@ const sendMailWithBrevo = async (mailOptions) => {
 // ✅ Logo path — already in your backend/assests folder
 const LOGO_PATH = path.join(__dirname, "..", "assests", "OmniGrosslogo2.png");
 
+const getLogoSrc = () => {
+  // Brevo API does not support the same CID inline-image flow as Nodemailer SMTP.
+  // For Brevo, set EMAIL_LOGO_URL to a public HTTPS image URL.
+  // For Hostinger SMTP later, EMAIL_PROVIDER=smtp will keep using cid:omnigross_logo.
+  if (getEmailProvider() === "brevo" && process.env.EMAIL_LOGO_URL) {
+    return process.env.EMAIL_LOGO_URL;
+  }
+
+  return "cid:omnigross_logo";
+};
+
 const sendInvoiceEmail = async ({ to, customerName, invoiceNumber, pdfBuffer }) => {
   const mailOptions = {
     from:    `"OmniGross" <${process.env.EMAIL_USER}>`,
@@ -207,7 +218,7 @@ const sendInvoiceEmail = async ({ to, customerName, invoiceNumber, pdfBuffer }) 
     <tr>
       <td style="vertical-align:middle; padding-right:14px;">
         <img
-          src="cid:omnigross_logo"
+          src="${getLogoSrc()}"
           alt="OmniGross"
           style="height:54px; width:54px; object-fit:contain; display:block;"
         />
@@ -305,7 +316,8 @@ const sendInvoiceEmail = async ({ to, customerName, invoiceNumber, pdfBuffer }) 
         contentType: "application/pdf"
       },
       {
-        // ✅ Inline logo — cid must match src="cid:omnigross_logo" above
+        // Used by Hostinger SMTP when EMAIL_PROVIDER=smtp.
+        // Brevo API uses EMAIL_LOGO_URL instead because CID images are not supported there.
         filename: "OmniGrosslogo2.png",
         path:     LOGO_PATH,
         cid:      "omnigross_logo"
@@ -346,7 +358,7 @@ const sendPaymentReminder = async ({ to, customerName, invoiceNumber, totalAmoun
     <tr>
       <td style="vertical-align:middle; padding-right:14px;">
         <img
-          src="cid:omnigross_logo"
+          src="${getLogoSrc()}"
           alt="OmniGross"
           style="height:54px; width:54px; object-fit:contain; display:block;"
         />
