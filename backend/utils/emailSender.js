@@ -2,10 +2,17 @@ const nodemailer = require("nodemailer");
 const fs         = require("fs");
 const path       = require("path");
 
+const smtpPort = Number(process.env.SMTP_PORT) || 465;
+
 const transporter = nodemailer.createTransport({
-  host:   "smtp.hostinger.com",
-  port:   465,
-  secure: true,
+  host:   process.env.SMTP_HOST || "smtp.hostinger.com",
+  port:   smtpPort,
+  secure: process.env.SMTP_SECURE
+    ? process.env.SMTP_SECURE === "true"
+    : smtpPort === 465,
+  connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT) || 30000,
+  greetingTimeout:   Number(process.env.SMTP_GREETING_TIMEOUT) || 30000,
+  socketTimeout:     Number(process.env.SMTP_SOCKET_TIMEOUT) || 60000,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
