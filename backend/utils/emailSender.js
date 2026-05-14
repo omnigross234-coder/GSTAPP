@@ -1,23 +1,46 @@
 const nodemailer = require("nodemailer");
+const dns        = require("dns/promises");
 const fs         = require("fs");
 const path       = require("path");
 
 const SMTP_HOST = process.env.SMTP_HOST || "smtp.hostinger.com";
+let smtpHostCache = null;
 
-const createTransporter = ({ port, secure }) => nodemailer.createTransport({
-  host: SMTP_HOST,
-  port,
-  secure,
-  family: Number(process.env.SMTP_FAMILY) || 4,
-  requireTLS: !secure,
-  connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT) || 20000,
-  greetingTimeout:   Number(process.env.SMTP_GREETING_TIMEOUT) || 20000,
-  socketTimeout:     Number(process.env.SMTP_SOCKET_TIMEOUT) || 45000,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+const getSmtpHost = async () => {
+  if (process.env.SMTP_IPV4_HOST) return process.env.SMTP_IPV4_HOST;
+  if (Number(process.env.SMTP_FAMILY) !== 4) return SMTP_HOST;
+  if (smtpHostCache) return smtpHostCache;
+
+  const addresses = await dns.resolve4(SMTP_HOST);
+  if (!addresses.length) {
+    throw new Error(`No IPv4 address found for SMTP host ${SMTP_HOST}.`);
   }
-});
+
+  smtpHostCache = addresses[0];
+  return smtpHostCache;
+};
+
+const createTransporter = async ({ port, secure }) => {
+  const host = await getSmtpHost();
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    family: Number(process.env.SMTP_FAMILY) || 4,
+    requireTLS: !secure,
+    connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT) || 20000,
+    greetingTimeout:   Number(process.env.SMTP_GREETING_TIMEOUT) || 20000,
+    socketTimeout:     Number(process.env.SMTP_SOCKET_TIMEOUT) || 45000,
+    tls: {
+      servername: SMTP_HOST,
+    },
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
+};
 
 const getPrimarySmtpConfig = () => {
   const port = Number(process.env.SMTP_PORT) || 587;
@@ -44,7 +67,8 @@ const sendMail = async (mailOptions) => {
   const primary = getPrimarySmtpConfig();
 
   try {
-    return await createTransporter(primary).sendMail(mailOptions);
+    const transporter = await createTransporter(primary);
+    return await transporter.sendMail(mailOptions);
   } catch (err) {
     const alreadyTried587 = primary.port === 587 && primary.secure === false;
     if (!isConnectionTimeout(err) || alreadyTried587) throw err;
@@ -53,7 +77,8 @@ const sendMail = async (mailOptions) => {
       `[Email] SMTP ${SMTP_HOST}:${primary.port} timed out. Retrying with port 587 STARTTLS.`
     );
 
-    return createTransporter({ port: 587, secure: false }).sendMail(mailOptions);
+    const transporter = await createTransporter({ port: 587, secure: false });
+    return transporter.sendMail(mailOptions);
   }
 };
 
