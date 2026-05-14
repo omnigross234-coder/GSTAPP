@@ -1170,6 +1170,18 @@ const uniqueUsers = [...new Map(invoices.map(i => [i.user_id, { id: i.user_id, u
                     onClick={() => handleEditOpen(inv)}>
                     <FiEdit size={13} /> Edit
                   </button>
+                  <button
+                                                      className="btn btn-outline-info btn-sm"
+                                                      onClick={() => {
+                                                        setEmailModal(inv);
+                                                        setEmailAddress("");
+                                                        setEmailError("");
+                                                        setEmailSuccess("");
+                                                        setEmailType("invoice");
+                                                      }}
+                                                    >
+                                                  <FiMail/> 
+                                                </button>
                   <button className="btn btn-outline-danger btn-sm flex-fill"
                     onClick={() => handleAdminDelete(inv.invoice_id)}>
                     <FiTrash2 size={13} /> Delete
