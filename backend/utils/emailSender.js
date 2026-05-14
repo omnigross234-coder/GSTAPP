@@ -112,6 +112,21 @@ const attachmentToBrevo = (attachment) => {
   return null;
 };
 
+const htmlToText = (html = "") =>
+  html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const brevoRecipients = (to) =>
+  String(to)
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean)
+    .map((email) => ({ email }));
+
 const sendMailWithBrevo = async (mailOptions) => {
   const apiKey = (process.env.BREVO_API_KEY || "").trim();
 
@@ -134,9 +149,13 @@ const sendMailWithBrevo = async (mailOptions) => {
         name: process.env.EMAIL_FROM_NAME || "OmniGross",
         email: process.env.EMAIL_FROM || process.env.EMAIL_USER,
       },
-      to: [{ email: mailOptions.to }],
+      to: brevoRecipients(mailOptions.to),
+      replyTo: {
+        email: process.env.EMAIL_REPLY_TO || process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      },
       subject: mailOptions.subject,
       htmlContent: mailOptions.html,
+      textContent: htmlToText(mailOptions.html),
       attachment: attachments.length ? attachments : undefined,
     }),
   });
@@ -151,6 +170,7 @@ const sendMailWithBrevo = async (mailOptions) => {
     throw new Error(message);
   }
 
+  console.log("[Email] Brevo accepted message:", data.messageId || data);
   return data;
 };
 
