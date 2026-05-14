@@ -6,6 +6,9 @@ const path       = require("path");
 const SMTP_HOST = process.env.SMTP_HOST || "smtp.hostinger.com";
 let smtpHostCache = null;
 
+const getEmailProvider = () =>
+  (process.env.EMAIL_PROVIDER || (process.env.BREVO_API_KEY ? "brevo" : "smtp")).toLowerCase();
+
 const getSmtpHost = async () => {
   if (process.env.SMTP_IPV4_HOST) return process.env.SMTP_IPV4_HOST;
   if (Number(process.env.SMTP_FAMILY) !== 4) return SMTP_HOST;
@@ -64,6 +67,13 @@ const sendMail = async (mailOptions) => {
     throw new Error("EMAIL_USER or EMAIL_PASS is missing on the server.");
   }
 
+  // For Render/free hosting, use EMAIL_PROVIDER=brevo because it sends over HTTPS.
+  // For actual Hostinger SMTP deployment later, set EMAIL_PROVIDER=smtp and keep
+  // SMTP_HOST/SMTP_PORT/SMTP_SECURE configured for smtp.hostinger.com.
+  if (getEmailProvider() === "brevo") {
+    return sendMailWithBrevo(mailOptions);
+  }
+
   const primary = getPrimarySmtpConfig();
 
   try {
@@ -80,6 +90,62 @@ const sendMail = async (mailOptions) => {
     const transporter = await createTransporter({ port: 587, secure: false });
     return transporter.sendMail(mailOptions);
   }
+};
+
+const attachmentToBrevo = (attachment) => {
+  if (attachment.cid) return null;
+
+  if (Buffer.isBuffer(attachment.content)) {
+    return {
+      name: attachment.filename,
+      content: attachment.content.toString("base64"),
+    };
+  }
+
+  if (attachment.path) {
+    return {
+      name: attachment.filename || path.basename(attachment.path),
+      content: fs.readFileSync(attachment.path).toString("base64"),
+    };
+  }
+
+  return null;
+};
+
+const sendMailWithBrevo = async (mailOptions) => {
+  if (!process.env.BREVO_API_KEY) {
+    throw new Error("BREVO_API_KEY is missing on the server.");
+  }
+
+  const attachments = (mailOptions.attachments || [])
+    .map(attachmentToBrevo)
+    .filter(Boolean);
+
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "api-key": process.env.BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: {
+        name: process.env.EMAIL_FROM_NAME || "OmniGross",
+        email: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      },
+      to: [{ email: mailOptions.to }],
+      subject: mailOptions.subject,
+      htmlContent: mailOptions.html,
+      attachment: attachments.length ? attachments : undefined,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || `Brevo API failed with status ${response.status}`);
+  }
+
+  return data;
 };
 
 // ✅ Logo path — already in your backend/assests folder
