@@ -60,6 +60,8 @@ const EMPTY_FORM = {
   category_id:    "",
   client_name:    "",
   project_name:   "",
+  unit_amount:    "",
+  units:          "1",
   amount:         "",
   gst_percent:    "18",
   gst_amount:     "",
@@ -170,15 +172,19 @@ const [reportGenerated, setReportGenerated] = useState(false);
   };
 
   // ── Auto calculate GST ──────────────────────────────
-  const handleAmountChange = (amount, gst_percent) => {
-    const amt     = parseFloat(amount)      || 0;
-    const gstPct  = parseFloat(gst_percent) || 0;
-    const gstAmt  = (amt * gstPct) / 100;
-    const total   = amt + gstAmt;
+  const handleExpenseCalcChange = (updates = {}) => {
+    const next       = { ...form, ...updates };
+    const unitAmount = parseFloat(next.unit_amount) || 0;
+    const units      = parseFloat(next.units) || 0;
+    const gstPct     = parseFloat(next.gst_percent) || 0;
+    const subtotal   = unitAmount * units;
+    const gstAmt     = (subtotal * gstPct) / 100;
+    const total      = subtotal + gstAmt;
+
     setForm(prev => ({
       ...prev,
-      amount,
-      gst_percent,
+      ...updates,
+      amount:       subtotal.toFixed(2),
       gst_amount:   gstAmt.toFixed(2),
       total_amount: total.toFixed(2)
     }));
@@ -188,7 +194,11 @@ const [reportGenerated, setReportGenerated] = useState(false);
   const handleSubmit = async () => {
     setError(""); setSuccess("");
     if (!form.expense_date) { setError("Expense date is required"); return; }
-    if (!form.amount || Number(form.amount) < 1) { setError("Amount must be at least ₹1"); return; }
+    if (!form.unit_amount || Number(form.unit_amount) < 1) { setError("Amount per unit must be at least ₹1"); return; }
+    if (!form.units || Number(form.units) <= 0 || !Number.isInteger(Number(form.units))) {
+      setError("Units must be a whole number greater than 0");
+      return;
+    }
 
     try {
       const res = editingId
@@ -216,6 +226,8 @@ const [reportGenerated, setReportGenerated] = useState(false);
       category_id:    exp.category_id    || "",
       client_name:    exp.client_name    || "",
       project_name:   exp.project_name   || "",
+      unit_amount:    exp.unit_amount    || exp.amount || "",
+      units:          exp.units          || "1",
       amount:         exp.amount         || "",
       gst_percent:    exp.gst_percent    || "18",
       gst_amount:     exp.gst_amount     || "",
@@ -857,11 +869,20 @@ const exportToCSV = () => {
                     </div>
 
                     <div className="col-12 col-md-3">
-                      <label className="form-label fw-semibold">Amount (₹) *</label>
+                      <label className="form-label fw-semibold">Amount / Unit (₹) *</label>
                       <input type="number" className="form-control"
-                        placeholder="0.00" min="1"
-                        value={form.amount}
-                        onChange={(e) => handleAmountChange(e.target.value, form.gst_percent)}
+                        placeholder="0.00" min="1" step="0.01"
+                        value={form.unit_amount}
+                        onChange={(e) => handleExpenseCalcChange({ unit_amount: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-3">
+                      <label className="form-label fw-semibold">Units / Quantity *</label>
+                      <input type="number" className="form-control"
+                        placeholder="1" min="1" step="1"
+                        value={form.units}
+                        onChange={(e) => handleExpenseCalcChange({ units: e.target.value })}
                       />
                     </div>
 
@@ -869,13 +890,21 @@ const exportToCSV = () => {
                       <label className="form-label fw-semibold">GST %</label>
                       <select className="form-select"
                         value={form.gst_percent}
-                        onChange={(e) => handleAmountChange(form.amount, e.target.value)}>
+                        onChange={(e) => handleExpenseCalcChange({ gst_percent: e.target.value })}>
                         <option value="0">0%</option>
                         <option value="5">5%</option>
                         <option value="12">12%</option>
                         <option value="18">18%</option>
                         <option value="28">28%</option>
                       </select>
+                    </div>
+
+                    <div className="col-12 col-md-3">
+                      <label className="form-label fw-semibold">Subtotal (₹)</label>
+                      <input type="number" className="form-control"
+                        readOnly value={form.amount}
+                        style={{ background: "#f8f9fa" }}
+                      />
                     </div>
 
                     <div className="col-12 col-md-3">
@@ -973,7 +1002,9 @@ const exportToCSV = () => {
                         <th>Vendor</th>
                         <th>Category</th>
                         <th>Client</th>
-                        <th>Amount</th>
+                        <th>Unit Amt</th>
+                        <th>Units</th>
+                        <th>Subtotal</th>
                         <th>GST</th>
                         <th>Total</th>
                         <th>Mode</th>
@@ -991,6 +1022,8 @@ const exportToCSV = () => {
                           <td>{e.vendor_name  || "—"}</td>
                           <td>{e.category_name || "—"}</td>
                           <td>{e.client_name  || "—"}</td>
+                          <td>{fmt(e.unit_amount || e.amount)}</td>
+                          <td>{Number(e.units || 1).toLocaleString("en-IN")}</td>
                           <td>{fmt(e.amount)}</td>
                           <td className="text-muted small">{fmt(e.gst_amount)}</td>
                           <td className="fw-bold">{fmt(e.total_amount)}</td>
@@ -1052,7 +1085,12 @@ const exportToCSV = () => {
                           {/* {e.client_name && ` | <FiUser /> ${e.client_name}`} */}
                         </p>
                         <div className="d-flex justify-content-between align-items-center">
-                          <span className="fw-bold">{fmt(e.total_amount)}</span>
+                        <span className="fw-bold">
+                          {fmt(e.total_amount)}
+                          <small className="text-muted d-block">
+                            {fmt(e.unit_amount || e.amount)} x {Number(e.units || 1).toLocaleString("en-IN")}
+                          </small>
+                        </span>
                           <div className="d-flex gap-1">
                             <button className="btn btn-outline-warning btn-sm"
                               onClick={() => handleEdit(e)}>
@@ -1655,7 +1693,9 @@ const exportToCSV = () => {
                       <th>Vendor</th>
                       <th>Category</th>
                       <th>Client</th>
-                      <th>Amount</th>
+                      <th>Unit Amt</th>
+                      <th>Units</th>
+                      <th>Subtotal</th>
                       <th>GST%</th>
                       <th>GST Amt</th>
                       <th>Total</th>
@@ -1674,6 +1714,8 @@ const exportToCSV = () => {
                         <td>{r.vendor}</td>
                         <td>{r.category}</td>
                         <td>{r.client_name || <span className="text-muted">—</span>}</td>
+                        <td>{fmt(r.unit_amount || r.amount)}</td>
+                        <td>{Number(r.units || 1).toLocaleString("en-IN")}</td>
                         <td>{fmt(r.amount)}</td>
                         <td>{r.gst_percent}%</td>
                         <td className="text-muted">{fmt(r.gst_amount)}</td>
@@ -1693,7 +1735,7 @@ const exportToCSV = () => {
                     ))}
                     {/* Total row */}
                     <tr className="fw-bold" style={{ background: "#e8eaf6" }}>
-                      <td colSpan="6">Total</td>
+                      <td colSpan="8">Total</td>
                       <td>{fmt(reportData.reduce((s, r) => s + Number(r.amount), 0))}</td>
                       <td>—</td>
                       <td>{fmt(reportData.reduce((s, r) => s + Number(r.gst_amount), 0))}</td>

@@ -291,6 +291,8 @@ app.get("/api/reports/date-range", (req, res) => {
       COALESCE(ec.name, 'Uncategorized') AS category,
       e.client_name,
       e.project_name,
+      e.unit_amount,
+      e.units,
       e.amount,
       e.gst_percent,
       e.gst_amount,

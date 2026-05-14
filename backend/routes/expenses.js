@@ -21,6 +21,27 @@ const generateExpenseNumber = (callback) => {
   });
 };
 
+const calculateExpenseAmounts = ({ unit_amount, units, amount, gst_percent }) => {
+  const unitAmount = Number(unit_amount ?? amount) || 0;
+  const qty        = Number(units) || 1;
+  const gstPct     = Number(gst_percent) || 0;
+  const subtotal   = unitAmount * qty;
+  const gstAmount  = (subtotal * gstPct) / 100;
+
+  return {
+    unitAmount: unitAmount.toFixed(2),
+    units: qty.toFixed(2),
+    subtotal: subtotal.toFixed(2),
+    gstAmount: gstAmount.toFixed(2),
+    total: (subtotal + gstAmount).toFixed(2),
+  };
+};
+
+const validateExpenseQuantity = (units) => {
+  const qty = Number(units || 1);
+  return Number.isInteger(qty) && qty > 0;
+};
+
 //  DASHBOARD STATS
 router.get("/dashboard", (req, res) => {
   const { from, to, month, year } = req.query;
@@ -213,13 +234,18 @@ router.get("/:id", (req, res) => {
 router.post("/", (req, res) => {
   const {
     expense_date, vendor_id, category_id, client_name, project_name,
-    amount, gst_percent, gst_amount, total_amount, gst_type,
+    unit_amount, units, amount, gst_percent, gst_type,
     payment_mode, payment_status, due_date, notes, created_by
   } = req.body;
 
-  if (!expense_date || !amount) {
+  if (!expense_date || !(unit_amount || amount)) {
     return res.status(400).json({ error: "Date and amount are required" });
   }
+  if (!validateExpenseQuantity(units)) {
+    return res.status(400).json({ error: "Units must be a whole number greater than 0" });
+  }
+
+  const totals = calculateExpenseAmounts({ unit_amount, units, amount, gst_percent });
 
   generateExpenseNumber((err, expense_number) => {
     if (err) return res.status(500).json({ error: "Number generation failed" });
@@ -227,16 +253,16 @@ router.post("/", (req, res) => {
     const sql = `
       INSERT INTO expenses (
         expense_number, expense_date, vendor_id, category_id,
-        client_name, project_name, amount, gst_percent, gst_amount,
+        client_name, project_name, unit_amount, units, amount, gst_percent, gst_amount,
         total_amount, gst_type, payment_mode, payment_status,
         due_date, notes, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     db.query(sql, [
       expense_number, expense_date, vendor_id || null, category_id || null,
-      client_name || null, project_name || null, amount,
-      gst_percent || 0, gst_amount || 0, total_amount,
+      client_name || null, project_name || null, totals.unitAmount, totals.units,
+      totals.subtotal, gst_percent || 0, totals.gstAmount, totals.total,
       gst_type || null, payment_mode || null, payment_status || "unpaid",
       due_date || null, notes || null, created_by || null
     ], (err, result) => {
@@ -250,15 +276,22 @@ router.post("/", (req, res) => {
 router.put("/:id", (req, res) => {
   const {
     expense_date, vendor_id, category_id, client_name, project_name,
-    amount, gst_percent, gst_amount, total_amount, gst_type,
+    unit_amount, units, amount, gst_percent, gst_type,
     payment_mode, payment_status, due_date, notes
   } = req.body;
+
+  const totals = calculateExpenseAmounts({ unit_amount, units, amount, gst_percent });
+
+  if (!validateExpenseQuantity(units)) {
+    return res.status(400).json({ error: "Units must be a whole number greater than 0" });
+  }
 
   const sql = `
     UPDATE expenses SET
       expense_date   = ?, vendor_id      = ?, category_id  = ?,
-      client_name    = ?, project_name   = ?, amount        = ?,
-      gst_percent    = ?, gst_amount     = ?, total_amount  = ?,
+      client_name    = ?, project_name   = ?, unit_amount   = ?,
+      units          = ?, amount         = ?, gst_percent   = ?,
+      gst_amount     = ?, total_amount   = ?,
       gst_type       = ?, payment_mode   = ?, payment_status = ?,
       due_date       = ?, notes          = ?
     WHERE id = ?
@@ -266,8 +299,9 @@ router.put("/:id", (req, res) => {
 
   db.query(sql, [
     expense_date, vendor_id || null, category_id || null,
-    client_name || null, project_name || null, amount,
-    gst_percent || 0, gst_amount || 0, total_amount,
+    client_name || null, project_name || null, totals.unitAmount,
+    totals.units, totals.subtotal, gst_percent || 0,
+    totals.gstAmount, totals.total,
     gst_type || null, payment_mode || null, payment_status || "unpaid",
     due_date || null, notes || null, req.params.id
   ], (err) => {
