@@ -96,7 +96,10 @@ const getUsers = (req, res) => {
 
 //  ADD NEW USER (admin only)
 const addUser = (req, res) => {
-  const { username, email, password, role } = req.body;
+  const username = String(req.body.username || "").trim();
+  const email = String(req.body.email || "").trim();
+  const password = String(req.body.password || "");
+  const role = String(req.body.role || "").trim();
 
   if (!username || !password || !role) {
     return res.status(400).json({ error: "Username, password and role are required" });
@@ -107,14 +110,34 @@ const addUser = (req, res) => {
     return res.status(400).json({ error: "Invalid role" });
   }
 
-  // Check if username already exists
-  db.query("SELECT id FROM users WHERE username = ?", [username], (err, result) => {
+  const duplicateSql = `
+    SELECT username, email
+    FROM users
+    WHERE username = ? OR (email IS NOT NULL AND email <> '' AND email = ?)
+    LIMIT 1
+  `;
+
+  db.query(duplicateSql, [username, email], (err, result) => {
     if (err) return res.status(500).json({ error: "DB error" });
-    if (result.length > 0) return res.status(400).json({ error: "Username already exists" });
+
+    if (result.length > 0) {
+      if (result[0].username === username) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+      return res.status(400).json({ error: "Email already exists" });
+    }
 
     const sql = "INSERT INTO users (username, email, password, role, is_active) VALUES (?, ?, ?, ?, 1)";
     db.query(sql, [username, email || null, password, role], (err, result) => {
-      if (err) return res.status(500).json({ error: "User creation failed" });
+      if (err) {
+        console.error("User creation error:", err);
+
+        if (err.code === "ER_DUP_ENTRY") {
+          return res.status(400).json({ error: "Username or email already exists" });
+        }
+
+        return res.status(500).json({ error: "User creation failed" });
+      }
       res.json({ message: "User created successfully", id: result.insertId });
     });
   });
