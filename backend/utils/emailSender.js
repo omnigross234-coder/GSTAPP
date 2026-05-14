@@ -8,6 +8,7 @@ const createTransporter = ({ port, secure }) => nodemailer.createTransport({
   host: SMTP_HOST,
   port,
   secure,
+  family: Number(process.env.SMTP_FAMILY) || 4,
   requireTLS: !secure,
   connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT) || 20000,
   greetingTimeout:   Number(process.env.SMTP_GREETING_TIMEOUT) || 20000,
