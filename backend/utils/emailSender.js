@@ -113,7 +113,9 @@ const attachmentToBrevo = (attachment) => {
 };
 
 const sendMailWithBrevo = async (mailOptions) => {
-  if (!process.env.BREVO_API_KEY) {
+  const apiKey = (process.env.BREVO_API_KEY || "").trim();
+
+  if (!apiKey) {
     throw new Error("BREVO_API_KEY is missing on the server.");
   }
 
@@ -125,7 +127,7 @@ const sendMailWithBrevo = async (mailOptions) => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "api-key": process.env.BREVO_API_KEY,
+      "api-key": apiKey,
     },
     body: JSON.stringify({
       sender: {
@@ -142,7 +144,11 @@ const sendMailWithBrevo = async (mailOptions) => {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.message || `Brevo API failed with status ${response.status}`);
+    const message = data.message || `Brevo API failed with status ${response.status}`;
+    if (/key not found/i.test(message)) {
+      throw new Error("Brevo API key is invalid or not configured in Render.");
+    }
+    throw new Error(message);
   }
 
   return data;
