@@ -2,22 +2,59 @@ const nodemailer = require("nodemailer");
 const fs         = require("fs");
 const path       = require("path");
 
-const smtpPort = Number(process.env.SMTP_PORT) || 465;
+const SMTP_HOST = process.env.SMTP_HOST || "smtp.hostinger.com";
 
-const transporter = nodemailer.createTransport({
-  host:   process.env.SMTP_HOST || "smtp.hostinger.com",
-  port:   smtpPort,
-  secure: process.env.SMTP_SECURE
-    ? process.env.SMTP_SECURE === "true"
-    : smtpPort === 465,
-  connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT) || 30000,
-  greetingTimeout:   Number(process.env.SMTP_GREETING_TIMEOUT) || 30000,
-  socketTimeout:     Number(process.env.SMTP_SOCKET_TIMEOUT) || 60000,
+const createTransporter = ({ port, secure }) => nodemailer.createTransport({
+  host: SMTP_HOST,
+  port,
+  secure,
+  requireTLS: !secure,
+  connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT) || 20000,
+  greetingTimeout:   Number(process.env.SMTP_GREETING_TIMEOUT) || 20000,
+  socketTimeout:     Number(process.env.SMTP_SOCKET_TIMEOUT) || 45000,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   }
 });
+
+const getPrimarySmtpConfig = () => {
+  const port = Number(process.env.SMTP_PORT) || 587;
+  return {
+    port,
+    secure: process.env.SMTP_SECURE
+      ? process.env.SMTP_SECURE === "true"
+      : port === 465,
+  };
+};
+
+const isConnectionTimeout = (err) =>
+  err && (
+    err.code === "ETIMEDOUT" ||
+    err.code === "ESOCKET" ||
+    /connection timeout|timeout/i.test(err.message || "")
+  );
+
+const sendMail = async (mailOptions) => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error("EMAIL_USER or EMAIL_PASS is missing on the server.");
+  }
+
+  const primary = getPrimarySmtpConfig();
+
+  try {
+    return await createTransporter(primary).sendMail(mailOptions);
+  } catch (err) {
+    const alreadyTried587 = primary.port === 587 && primary.secure === false;
+    if (!isConnectionTimeout(err) || alreadyTried587) throw err;
+
+    console.warn(
+      `[Email] SMTP ${SMTP_HOST}:${primary.port} timed out. Retrying with port 587 STARTTLS.`
+    );
+
+    return createTransporter({ port: 587, secure: false }).sendMail(mailOptions);
+  }
+};
 
 // ✅ Logo path — already in your backend/assests folder
 const LOGO_PATH = path.join(__dirname, "..", "assests", "OmniGrosslogo2.png");
@@ -158,7 +195,7 @@ const sendInvoiceEmail = async ({ to, customerName, invoiceNumber, pdfBuffer }) 
     ]
   };
 
-  return transporter.sendMail(mailOptions);
+  return sendMail(mailOptions);
 };
 
 const sendPaymentReminder = async ({ to, customerName, invoiceNumber, totalAmount, dueDate }) => {
@@ -303,7 +340,7 @@ const sendPaymentReminder = async ({ to, customerName, invoiceNumber, totalAmoun
     ]
   };
 
-  return transporter.sendMail(mailOptions);
+  return sendMail(mailOptions);
 };
 
 module.exports = { sendInvoiceEmail, sendPaymentReminder };
