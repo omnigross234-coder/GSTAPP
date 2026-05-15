@@ -97,6 +97,12 @@ function ExpensePage() {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterFrom,  setFilterFrom]  = useState("");
   const [filterTo,    setFilterTo]    = useState("");
+  const [expenseFilterCategory, setExpenseFilterCategory] = useState("");
+  const [expenseFilterVendor,   setExpenseFilterVendor]   = useState("");
+  const [expenseFilterMonth,    setExpenseFilterMonth]    = useState("");
+  const [expenseFilterFrom,     setExpenseFilterFrom]     = useState("");
+  const [expenseFilterTo,       setExpenseFilterTo]       = useState("");
+  const [expenseFilterNumber,   setExpenseFilterNumber]   = useState("");
 
   // Categories
 const [catForm,      setCatForm]      = useState({ name: "", description: "" });
@@ -211,7 +217,7 @@ const [reportGenerated, setReportGenerated] = useState(false);
       setForm({ ...EMPTY_FORM });
       setShowForm(false);
       setEditingId(null);
-      await loadExpenses();
+      await loadExpenses(buildExpenseFilters());
       await loadDashboard();
     } catch (err) {
       setError("Server error. Try again.");
@@ -248,12 +254,54 @@ const [reportGenerated, setReportGenerated] = useState(false);
     try {
       await deleteExpenseAPI(id);
       setSuccess("Expense deleted!");
-      await loadExpenses();
+      await loadExpenses(buildExpenseFilters());
       await loadDashboard();
     } catch (err) {
       setError("Delete failed.");
     }
   };
+
+  const buildExpenseFilters = () => {
+    const filters = {};
+
+    if (expenseFilterCategory) filters.category_id = expenseFilterCategory;
+    if (expenseFilterVendor) filters.vendor_id = expenseFilterVendor;
+    if (expenseFilterNumber.trim()) filters.expense_number = expenseFilterNumber.trim();
+
+    if (expenseFilterMonth) {
+      const [year, month] = expenseFilterMonth.split("-");
+      filters.month = month;
+      filters.year = year;
+    } else if (expenseFilterFrom && expenseFilterTo) {
+      filters.from = expenseFilterFrom;
+      filters.to = expenseFilterTo;
+    }
+
+    return filters;
+  };
+
+  const handleExpenseFilterApply = () => {
+    loadExpenses(buildExpenseFilters());
+  };
+
+  const handleExpenseFilterReset = () => {
+    setExpenseFilterCategory("");
+    setExpenseFilterVendor("");
+    setExpenseFilterMonth("");
+    setExpenseFilterFrom("");
+    setExpenseFilterTo("");
+    setExpenseFilterNumber("");
+    loadExpenses();
+  };
+
+  const hasExpenseFilters = Boolean(
+    expenseFilterCategory ||
+    expenseFilterVendor ||
+    expenseFilterMonth ||
+    expenseFilterFrom ||
+    expenseFilterTo ||
+    expenseFilterNumber.trim()
+  );
 
   const handleFilterApply = () => {
     const filters = {};
@@ -793,6 +841,105 @@ const exportToCSV = () => {
               </button>
             </div>
 
+            <div className="card mb-4 p-3" style={{ background: "#f8f9fa", borderLeft: "4px solid #1a237e" }}>
+              <div className="row g-3 align-items-end">
+                <div className="col-12 col-md-3 col-lg-2">
+                  <label className="form-label fw-semibold small"><FiClipboard /> Exp Number</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="EXP-2026-001"
+                    value={expenseFilterNumber}
+                    onChange={(e) => setExpenseFilterNumber(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleExpenseFilterApply();
+                    }}
+                  />
+                </div>
+
+                <div className="col-12 col-md-3 col-lg-2">
+                  <label className="form-label fw-semibold small"><FiTag /> Category</label>
+                  <select
+                    className="form-select"
+                    value={expenseFilterCategory}
+                    onChange={(e) => setExpenseFilterCategory(e.target.value)}
+                  >
+                    <option value="">All categories</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="col-12 col-md-3 col-lg-2">
+                  <label className="form-label fw-semibold small"><FiBriefcase /> Vendor</label>
+                  <select
+                    className="form-select"
+                    value={expenseFilterVendor}
+                    onChange={(e) => setExpenseFilterVendor(e.target.value)}
+                  >
+                    <option value="">All vendors</option>
+                    {vendors.map(v => (
+                      <option key={v.id} value={v.id}>{v.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="col-12 col-md-3 col-lg-2">
+                  <label className="form-label fw-semibold small"><FiCalendar /> Month</label>
+                  <input
+                    type="month"
+                    className="form-control"
+                    value={expenseFilterMonth}
+                    onChange={(e) => {
+                      setExpenseFilterMonth(e.target.value);
+                      setExpenseFilterFrom("");
+                      setExpenseFilterTo("");
+                    }}
+                  />
+                </div>
+
+                <div className="col-12 col-md-3 col-lg-2">
+                  <label className="form-label fw-semibold small">From Date</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={expenseFilterFrom}
+                    onChange={(e) => {
+                      setExpenseFilterFrom(e.target.value);
+                      setExpenseFilterMonth("");
+                    }}
+                  />
+                </div>
+
+                <div className="col-12 col-md-3 col-lg-2">
+                  <label className="form-label fw-semibold small">To Date</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={expenseFilterTo}
+                    onChange={(e) => {
+                      setExpenseFilterTo(e.target.value);
+                      setExpenseFilterMonth("");
+                    }}
+                  />
+                </div>
+
+                <div className="col-12 d-flex flex-wrap gap-2 justify-content-end">
+                  <button className="btn btn-primary btn-sm" onClick={handleExpenseFilterApply}>
+                    <FiSearch /> Apply Filters
+                  </button>
+                  <button
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={handleExpenseFilterReset}
+                    disabled={!hasExpenseFilters}
+                  >
+                    <FiRefreshCw /> Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* ── Add/Edit Form ── */}
             {showForm && (
               <div className="card mb-4 border-primary">
@@ -1035,7 +1182,7 @@ const exportToCSV = () => {
                               style={{ width: "100px" }}
                               onChange={async (ev) => {
                                 await updateExpenseStatusAPI(e.id, ev.target.value);
-                                await loadExpenses();
+                                await loadExpenses(buildExpenseFilters());
                                 await loadDashboard();
                               }}
                             >

@@ -170,7 +170,17 @@ router.get("/dashboard", (req, res) => {
 
 //  GET ALL EXPENSES
 router.get("/", (req, res) => {
-  const { from, to, month, category_id, payment_status, search } = req.query;
+  const {
+    from,
+    to,
+    month,
+    year,
+    category_id,
+    vendor_id,
+    payment_status,
+    expense_number,
+    search
+  } = req.query;
 
   let whereClause = "WHERE 1=1";
   const params    = [];
@@ -180,16 +190,31 @@ router.get("/", (req, res) => {
     params.push(from, to);
   }
   if (month) {
-    whereClause += " AND MONTH(e.expense_date) = ? AND YEAR(e.expense_date) = YEAR(CURDATE())";
+    whereClause += " AND MONTH(e.expense_date) = ?";
     params.push(month);
+
+    if (year) {
+      whereClause += " AND YEAR(e.expense_date) = ?";
+      params.push(year);
+    } else {
+      whereClause += " AND YEAR(e.expense_date) = YEAR(CURDATE())";
+    }
   }
   if (category_id) {
     whereClause += " AND e.category_id = ?";
     params.push(category_id);
   }
+  if (vendor_id) {
+    whereClause += " AND e.vendor_id = ?";
+    params.push(vendor_id);
+  }
   if (payment_status) {
     whereClause += " AND e.payment_status = ?";
     params.push(payment_status);
+  }
+  if (expense_number) {
+    whereClause += " AND e.expense_number LIKE ?";
+    params.push(`%${expense_number}%`);
   }
   if (search) {
     whereClause += " AND (e.expense_number LIKE ? OR v.name LIKE ? OR e.client_name LIKE ?)";
