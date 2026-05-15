@@ -1614,7 +1614,7 @@ const uniqueUsers = [...new Map(invoices.map(i => [i.user_id, { id: i.user_id, u
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
           <span style={{ fontSize: "24px" }}><FiClock/></span>
           <h3 style={{ color: "#fff", margin: 0, fontSize: "16px", fontWeight: 600 }}>
-            Auto Backup
+            Backup Mode
           </h3>
         </div>
 
@@ -1629,7 +1629,7 @@ const uniqueUsers = [...new Map(invoices.map(i => [i.user_id, { id: i.user_id, u
           }}>
             <span style={{ color: "#888", fontSize: "13px" }}>Schedule</span>
             <span style={{ color: "#a5b4fc", fontWeight: 600, fontSize: "14px" }}>
-              Daily 2:00 AM IST
+              Manual only
             </span>
           </div>
 
@@ -1673,14 +1673,14 @@ const uniqueUsers = [...new Map(invoices.map(i => [i.user_id, { id: i.user_id, u
           }}>
             <span style={{ color: "#888", fontSize: "13px" }}>Status</span>
             <span style={{
-              background: "#052e16",
-              color: "#4ade80",
+              background: "#2d1f06",
+              color: "#facc15",
               padding: "3px 10px",
               borderRadius: "20px",
               fontSize: "12px",
               fontWeight: 600
             }}>
-              ● Active
+              Auto not supported
             </span>
           </div>
         </div>

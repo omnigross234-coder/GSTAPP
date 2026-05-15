@@ -56,11 +56,25 @@ router.post("/manual", verifyAdmin, async (req, res) => {
 
 // ── GET /api/backup/status ────────────────────────────────────
 router.get("/status", verifyAdmin, (req, res) => {
-  res.json({ success: true, message: "Backup service active.", schedule: "Daily 2:00 AM IST" });
+  const autoBackupEnabled = process.env.AUTO_BACKUP_ENABLED === "true";
+  res.json({
+    success: true,
+    manualBackup: true,
+    autoBackup: autoBackupEnabled,
+    message: autoBackupEnabled
+      ? "Auto backup service active."
+      : "Auto backup is not supported in this deployment. Use manual backup.",
+    schedule: autoBackupEnabled ? "Daily 2:00 AM IST" : null
+  });
 });
 
 // ── Auto scheduler — 2:00 AM IST every day ───────────────────
 function startAutoBackupScheduler() {
+  if (process.env.AUTO_BACKUP_ENABLED !== "true") {
+    console.log("[Auto Backup] Disabled. Set AUTO_BACKUP_ENABLED=true to enable scheduler.");
+    return;
+  }
+
   cron.schedule(
   process.env.BACKUP_CRON || "0 2 * * *",
   async () => {
