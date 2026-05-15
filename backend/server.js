@@ -94,11 +94,15 @@ app.get("/api/expense-categories", (req, res) => {
 
 app.post("/api/expense-categories", (req, res) => {
   const db = require("./config/db");
-  const { name, description } = req.body;
+  const { name, description, default_price } = req.body;
   if (!name) return res.status(400).json({ error: "Name required" });
+  const categoryDefaultPrice = default_price === "" || default_price == null ? 0 : Number(default_price);
+  if (!Number.isFinite(categoryDefaultPrice) || categoryDefaultPrice < 0) {
+    return res.status(400).json({ error: "Default price must be a valid amount" });
+  }
   db.query(
-    "INSERT INTO expense_categories (name, description) VALUES (?, ?)",
-    [name, description || null],
+    "INSERT INTO expense_categories (name, description, default_price) VALUES (?, ?, ?)",
+    [name, description || null, categoryDefaultPrice],
     (err, result) => {
       if (err) return res.status(500).json({ error: "Insert failed" });
       res.json({ message: "Category added", id: result.insertId });
@@ -109,13 +113,17 @@ app.post("/api/expense-categories", (req, res) => {
 
 app.put("/api/expense-categories/:id", (req, res) => {
   const db = require("./config/db");
-  const { name, description, is_active } = req.body;
+  const { name, description, default_price, is_active } = req.body;
+  const categoryDefaultPrice = default_price === "" || default_price == null ? 0 : Number(default_price);
+  if (!Number.isFinite(categoryDefaultPrice) || categoryDefaultPrice < 0) {
+    return res.status(400).json({ error: "Default price must be a valid amount" });
+  }
 
   console.log("Category update called:", req.params.id, req.body);
 
   db.query(
-    "UPDATE expense_categories SET name=?, description=?, is_active=? WHERE id=?",
-    [name, description || null, is_active ?? 1, req.params.id],
+    "UPDATE expense_categories SET name=?, description=?, default_price=?, is_active=? WHERE id=?",
+    [name, description || null, categoryDefaultPrice, is_active ?? 1, req.params.id],
     (err, result) => {
       if (err) {
         console.error("Update error:", err);

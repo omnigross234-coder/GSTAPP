@@ -105,7 +105,7 @@ function ExpensePage() {
   const [expenseFilterNumber,   setExpenseFilterNumber]   = useState("");
 
   // Categories
-const [catForm,      setCatForm]      = useState({ name: "", description: "" });
+const [catForm,      setCatForm]      = useState({ name: "", description: "", default_price: "" });
 const [editingCatId, setEditingCatId] = useState(null);
 const [showCatForm,  setShowCatForm]  = useState(false);
 
@@ -261,6 +261,21 @@ const [reportGenerated, setReportGenerated] = useState(false);
     }
   };
 
+  const handleExpenseCategoryChange = (categoryId) => {
+    const selectedCategory = categories.find(c => String(c.id) === String(categoryId));
+    const defaultPrice = selectedCategory?.default_price;
+
+    if (defaultPrice !== undefined && defaultPrice !== null && defaultPrice !== "") {
+      handleExpenseCalcChange({
+        category_id: categoryId,
+        unit_amount: Number(defaultPrice).toFixed(2)
+      });
+      return;
+    }
+
+    setForm({ ...form, category_id: categoryId });
+  };
+
   const buildExpenseFilters = () => {
     const filters = {};
 
@@ -331,7 +346,7 @@ const handleCatSubmit = async () => {
       : await addCategoryAPI(catForm);
     if (res.error) { setError(res.error); return; }
     setSuccess(editingCatId ? "Category updated!" : "Category added!");
-    setCatForm({ name: "", description: "" });
+    setCatForm({ name: "", description: "", default_price: "" });
     setShowCatForm(false);
     setEditingCatId(null);
     await loadCategories(true);
@@ -340,7 +355,11 @@ const handleCatSubmit = async () => {
 
 const handleCatEdit = (cat) => {
   setEditingCatId(cat.id);
-  setCatForm({ name: cat.name, description: cat.description || "" });
+  setCatForm({
+    name: cat.name,
+    description: cat.description || "",
+    default_price: cat.default_price ?? ""
+  });
   setShowCatForm(true);
 };
 
@@ -362,6 +381,7 @@ const handleCatToggle = async (cat) => {
     const res = await updateCategoryAPI(cat.id, {
       name:        cat.name,
       description: cat.description || "",
+      default_price: cat.default_price ?? 0,
       is_active:   newStatus
     });
     if (res.error) { setError(res.error); return; }
@@ -977,7 +997,7 @@ const exportToCSV = () => {
                       <label className="form-label fw-semibold">Category</label>
                       <select className="form-select"
                         value={form.category_id}
-                        onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
+                        onChange={(e) => handleExpenseCategoryChange(e.target.value)}>
                         <option value="">Select category...</option>
                         {categories.filter(c => c.is_active === 1).map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
@@ -1266,7 +1286,7 @@ const exportToCSV = () => {
       <h5 className="mb-0">Expense Categories ({categories.length})</h5>
       <button
         className="btn btn-primary btn-sm d-flex align-items-center gap-1"
-        onClick={() => { setShowCatForm(!showCatForm); setEditingCatId(null); setCatForm({ name: "", description: "" }); }}
+        onClick={() => { setShowCatForm(!showCatForm); setEditingCatId(null); setCatForm({ name: "", description: "", default_price: "" }); }}
       >
         <FiPlus size={14} /> {showCatForm ? "Cancel" : "Add Category"}
       </button>
@@ -1282,7 +1302,7 @@ const exportToCSV = () => {
         </div>
         <div className="card-body">
           <div className="row g-3">
-            <div className="col-12 col-md-6">
+            <div className="col-12 col-md-4">
               <label className="form-label fw-semibold">Category Name *</label>
               <input
                 type="text" className="form-control"
@@ -1291,7 +1311,18 @@ const exportToCSV = () => {
                 onChange={(e) => setCatForm({ ...catForm, name: e.target.value })}
               />
             </div>
-            <div className="col-12 col-md-6">
+            <div className="col-12 col-md-4">
+              <label className="form-label fw-semibold">Default Price</label>
+              <input
+                type="number" className="form-control"
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                value={catForm.default_price}
+                onChange={(e) => setCatForm({ ...catForm, default_price: e.target.value })}
+              />
+            </div>
+            <div className="col-12 col-md-4">
               <label className="form-label fw-semibold">Description</label>
               <input
                 type="text" className="form-control"
@@ -1321,6 +1352,7 @@ const exportToCSV = () => {
           <tr>
             <th>#</th>
             <th>Category Name</th>
+            <th>Default Price</th>
             <th>Description</th>
             <th>Status</th>
             <th>Actions</th>
@@ -1331,6 +1363,7 @@ const exportToCSV = () => {
             <tr key={cat.id}>
               <td>{i + 1}</td>
               <td><strong>{cat.name}</strong></td>
+              <td>{fmt(cat.default_price)}</td>
               <td>{cat.description || <span className="text-muted">—</span>}</td>
               <td>
                 <span className={`badge ${cat.is_active ? "bg-success" : "bg-secondary"}`}>
