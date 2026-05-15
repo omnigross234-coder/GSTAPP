@@ -85,8 +85,8 @@ router.get("/status", verifyAdmin, (req, res) => {
     message: autoBackupEnabled
       ? "Auto backup service active."
       : "Auto backup is not configured. Use manual backup or configure BACKUP_CRON_SECRET.",
-    schedule: autoBackupEnabled ? getBackupScheduleLabel() : null,
-    cron: autoBackupEnabled ? getBackupSchedule() : null
+    schedule: getBackupScheduleLabel(),
+    cron: getBackupSchedule()
   });
 });
 

@@ -1646,7 +1646,7 @@ const uniqueUsers = [...new Map(invoices.map(i => [i.user_id, { id: i.user_id, u
           }}>
             <span style={{ color: "#888", fontSize: "13px" }}>Schedule</span>
             <span style={{ color: "#a5b4fc", fontWeight: 600, fontSize: "14px" }}>
-              {backupStatus?.schedule || "Daily 2:00 AM IST"}
+              {backupStatus?.schedule || "Daily 6:30 PM IST"}
             </span>
           </div>
 
