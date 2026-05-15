@@ -219,6 +219,28 @@ useEffect(() => {
     }
   };
 
+  const handleDeleteUser = async (id, uname) => {
+    if (id === currentUser?.id) {
+      setError("You cannot delete your own account");
+      return;
+    }
+    if (!window.confirm(`Delete user "${uname}"? Their existing invoices and records will remain, but will no longer be assigned to this user.`)) return;
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/users/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current_user_id: currentUser?.id })
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Delete failed"); return; }
+      setSuccess(data.message || `User "${uname}" deleted successfully`);
+      await loadUsers();
+    } catch (err) {
+      setError("Server error. Try again.");
+    }
+  };
+
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
       logout(); navigate("/login");
@@ -714,15 +736,23 @@ const uniqueUsers = [...new Map(invoices.map(i => [i.user_id, { id: i.user_id, u
                             {u.id === currentUser?.id ? (
                               <span className="text-muted small">Cannot modify</span>
                             ) : (
-                              <button
-                                className={`btn btn-sm ${u.is_active
-                                  ? "btn-outline-danger"
-                                  : "btn-outline-success"}`}
-                                onClick={() => handleToggleStatus(u.id, u.is_active, u.username)}
-                              > 
-                               {u.is_active ? <FiUserX /> : <FiUserCheck />}
-                                {u.is_active ? " Deactivate" : " Activate"}
-                              </button>
+                              <div className="d-flex gap-1">
+                                <button
+                                  className={`btn btn-sm ${u.is_active
+                                    ? "btn-outline-danger"
+                                    : "btn-outline-success"}`}
+                                  onClick={() => handleToggleStatus(u.id, u.is_active, u.username)}
+                                >
+                                  {u.is_active ? <FiUserX /> : <FiUserCheck />}
+                                  {u.is_active ? " Deactivate" : " Activate"}
+                                </button>
+                                <button
+                                  className="btn btn-outline-danger btn-sm"
+                                  onClick={() => handleDeleteUser(u.id, u.username)}
+                                >
+                                  <FiTrash2 /> Delete
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -761,15 +791,23 @@ const uniqueUsers = [...new Map(invoices.map(i => [i.user_id, { id: i.user_id, u
                            Joined: {new Date(u.created_at).toLocaleDateString("en-IN")}
                         </p>
                         {u.id !== currentUser?.id ? (
-                          <button
-                            className={`btn btn-sm w-100 ${u.is_active
-                              ? "btn-outline-danger"
-                              : "btn-outline-success"}`}
-                            onClick={() => handleToggleStatus(u.id, u.is_active, u.username)}
-                          > 
-                            {u.is_active ? <FiUserX /> : <FiUserCheck />}
-                            {u.is_active ? " Deactivate" : " Activate"}
-                          </button>
+                          <div className="d-grid gap-2">
+                            <button
+                              className={`btn btn-sm ${u.is_active
+                                ? "btn-outline-danger"
+                                : "btn-outline-success"}`}
+                              onClick={() => handleToggleStatus(u.id, u.is_active, u.username)}
+                            >
+                              {u.is_active ? <FiUserX /> : <FiUserCheck />}
+                              {u.is_active ? " Deactivate" : " Activate"}
+                            </button>
+                            <button
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={() => handleDeleteUser(u.id, u.username)}
+                            >
+                              <FiTrash2 /> Delete User
+                            </button>
+                          </div>
                         ) : (
                           <p className="text-muted small mb-0 text-center">
                             Cannot modify your own account

@@ -159,11 +159,79 @@ const toggleUserStatus = (req, res) => {
   });
 };
 
+// DELETE USER (admin only)
+const deleteUser = (req, res) => {
+  const { id } = req.params;
+  const { current_user_id } = req.body || {};
+
+  if (String(id) === String(current_user_id)) {
+    return res.status(400).json({ error: "You cannot delete your own account" });
+  }
+
+  db.beginTransaction((txErr) => {
+    if (txErr) return res.status(500).json({ error: "Delete failed" });
+
+    db.query("SELECT role FROM users WHERE id = ?", [id], (err, users) => {
+      if (err) return db.rollback(() => res.status(500).json({ error: "Delete failed" }));
+      if (users.length === 0) return db.rollback(() => res.status(404).json({ error: "User not found" }));
+
+      const checkLastAdmin = (next) => {
+        if (users[0].role !== "admin") return next();
+
+        db.query("SELECT COUNT(*) AS admin_count FROM users WHERE role = 'admin' AND id <> ?", [id], (adminErr, rows) => {
+          if (adminErr) return next(adminErr);
+          if (Number(rows[0]?.admin_count || 0) === 0) {
+            return next(new Error("LAST_ADMIN"));
+          }
+          next();
+        });
+      };
+
+      checkLastAdmin((adminErr) => {
+        if (adminErr) {
+          const message = adminErr.message === "LAST_ADMIN"
+            ? "At least one admin account is required"
+            : "Delete failed";
+          return db.rollback(() => res.status(400).json({ error: message }));
+        }
+
+        const updates = [
+          ["UPDATE invoices SET user_id = NULL WHERE user_id = ?", [id]],
+          ["UPDATE customers SET created_by = NULL WHERE created_by = ?", [id]],
+          ["UPDATE expenses SET created_by = NULL WHERE created_by = ?", [id]],
+          ["UPDATE backups SET created_by = NULL WHERE created_by = ?", [id]],
+        ];
+
+        const runUpdate = (index) => {
+          if (index >= updates.length) {
+            return db.query("DELETE FROM users WHERE id = ?", [id], (deleteErr) => {
+              if (deleteErr) return db.rollback(() => res.status(500).json({ error: "Delete failed" }));
+              db.commit((commitErr) => {
+                if (commitErr) return db.rollback(() => res.status(500).json({ error: "Delete failed" }));
+                res.json({ message: "User deleted successfully" });
+              });
+            });
+          }
+
+          const [sql, params] = updates[index];
+          db.query(sql, params, (updateErr) => {
+            if (updateErr) return db.rollback(() => res.status(500).json({ error: "Delete failed" }));
+            runUpdate(index + 1);
+          });
+        };
+
+        runUpdate(0);
+      });
+    });
+  });
+};
+
 module.exports = {
   login,
   verifyUsername,
   resetPassword,
   getUsers,
   addUser,
-  toggleUserStatus
+  toggleUserStatus,
+  deleteUser
 };

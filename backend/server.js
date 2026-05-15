@@ -37,6 +37,7 @@ app.use("/api/email", emailRoutes);
 app.get("/api/users",              authRoutes.getUsers);
 app.post("/api/users",             authRoutes.addUser);
 app.patch("/api/users/:id/status", authRoutes.toggleUserStatus);
+app.delete("/api/users/:id",       authRoutes.deleteUser);
 
 app.use("/api/backup", backupRouter); 
 
@@ -201,7 +202,7 @@ app.delete("/api/vendors/:id", (req, res) => {
 // ── Expense Reports ─────────────────────────────────────
 app.get("/api/reports/category-wise", (req, res) => {
   const db = require("./config/db");
-  const { from, to, month, year } = req.query;
+  const { from, to, month, year, category_id, vendor_id } = req.query;
 
   let whereClause = "WHERE 1=1";
   const params    = [];
@@ -212,6 +213,14 @@ app.get("/api/reports/category-wise", (req, res) => {
   } else if (from && to) {
     whereClause += " AND e.expense_date BETWEEN ? AND ?";
     params.push(from, to);
+  }
+  if (category_id) {
+    whereClause += " AND e.category_id = ?";
+    params.push(category_id);
+  }
+  if (vendor_id) {
+    whereClause += " AND e.vendor_id = ?";
+    params.push(vendor_id);
   }
 
   const sql = `
@@ -239,7 +248,7 @@ app.get("/api/reports/category-wise", (req, res) => {
 
 app.get("/api/reports/vendor-wise", (req, res) => {
   const db = require("./config/db");
-  const { from, to, month, year } = req.query;
+  const { from, to, month, year, category_id, vendor_id } = req.query;
 
   let whereClause = "WHERE 1=1";
   const params    = [];
@@ -250,6 +259,14 @@ app.get("/api/reports/vendor-wise", (req, res) => {
   } else if (from && to) {
     whereClause += " AND e.expense_date BETWEEN ? AND ?";
     params.push(from, to);
+  }
+  if (category_id) {
+    whereClause += " AND e.category_id = ?";
+    params.push(category_id);
+  }
+  if (vendor_id) {
+    whereClause += " AND e.vendor_id = ?";
+    params.push(vendor_id);
   }
 
   const sql = `
@@ -278,7 +295,7 @@ app.get("/api/reports/vendor-wise", (req, res) => {
 
 app.get("/api/reports/date-range", (req, res) => {
   const db = require("./config/db");
-  const { from, to, month, year } = req.query;
+  const { from, to, month, year, category_id, vendor_id } = req.query;
 
   let whereClause = "WHERE 1=1";
   const params    = [];
@@ -289,6 +306,14 @@ app.get("/api/reports/date-range", (req, res) => {
   } else if (from && to) {
     whereClause += " AND e.expense_date BETWEEN ? AND ?";
     params.push(from, to);
+  }
+  if (category_id) {
+    whereClause += " AND e.category_id = ?";
+    params.push(category_id);
+  }
+  if (vendor_id) {
+    whereClause += " AND e.vendor_id = ?";
+    params.push(vendor_id);
   }
 
   const sql = `

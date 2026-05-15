@@ -125,6 +125,8 @@ const [reportLoading, setReportLoading] = useState(false);
 const [reportFrom,    setReportFrom]    = useState("");
 const [reportTo,      setReportTo]      = useState("");
 const [reportMonth,   setReportMonth]   = useState("");
+const [reportCategory, setReportCategory] = useState("");
+const [reportVendor,   setReportVendor]   = useState("");
 const [reportGenerated, setReportGenerated] = useState(false);
 
   useEffect(() => {
@@ -449,6 +451,8 @@ const handleGenerateReport = async () => {
     filters.from = reportFrom;
     filters.to   = reportTo;
   }
+  if (reportCategory) filters.category_id = reportCategory;
+  if (reportVendor) filters.vendor_id = reportVendor;
 
   try {
     let data = [];
@@ -1598,7 +1602,7 @@ const exportToCSV = () => {
       <div className="row g-3 align-items-end">
 
         {/* Report Type */}
-        <div className="col-12 col-md-3">
+        <div className="col-12 col-md-4 col-lg-2">
           <label className="form-label fw-semibold">Report Type</label>
           <select
             className="form-select"
@@ -1612,7 +1616,35 @@ const exportToCSV = () => {
         </div>
 
         {/* Month filter */}
-        <div className="col-12 col-md-3">
+        <div className="col-12 col-md-4 col-lg-2">
+          <label className="form-label fw-semibold">Category</label>
+          <select
+            className="form-select"
+            value={reportCategory}
+            onChange={(e) => { setReportCategory(e.target.value); setReportGenerated(false); }}
+          >
+            <option value="">All categories</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="col-12 col-md-4 col-lg-2">
+          <label className="form-label fw-semibold">Vendor</label>
+          <select
+            className="form-select"
+            value={reportVendor}
+            onChange={(e) => { setReportVendor(e.target.value); setReportGenerated(false); }}
+          >
+            <option value="">All vendors</option>
+            {vendors.map(v => (
+              <option key={v.id} value={v.id}>{v.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="col-12 col-md-4 col-lg-2">
           <label className="form-label fw-semibold">Filter by Month</label>
           <input
             type="month"
@@ -1623,7 +1655,7 @@ const exportToCSV = () => {
         </div>
 
         {/* From date */}
-        <div className="col-12 col-md-2">
+        <div className="col-12 col-md-4 col-lg-2">
           <label className="form-label fw-semibold">From Date</label>
           <input
             type="date"
@@ -1634,7 +1666,7 @@ const exportToCSV = () => {
         </div>
 
         {/* To date */}
-        <div className="col-12 col-md-2">
+        <div className="col-12 col-md-4 col-lg-2">
           <label className="form-label fw-semibold">To Date</label>
           <input
             type="date"
@@ -1645,7 +1677,7 @@ const exportToCSV = () => {
         </div>
 
         {/* Generate button */}
-        <div className="col-12 col-md-2">
+        <div className="col-12 col-md-4 col-lg-2">
           <button
             className="btn btn-primary w-100"
             onClick={handleGenerateReport}
@@ -1657,19 +1689,39 @@ const exportToCSV = () => {
       </div>
 
       {/* Active filter badge */}
-      {(reportMonth || (reportFrom && reportTo)) && (
+      {(reportMonth || (reportFrom && reportTo) || reportCategory || reportVendor) && (
         <div className="mt-2">
           <small className="text-muted">
             Filtering:{" "}
-            {reportMonth
-              ? <span className="badge bg-info text-dark">
-                  {new Date(reportMonth + "-01").toLocaleString("en-IN", { month: "long", year: "numeric" })}
-                </span>
-              : <span className="badge bg-warning text-dark">{reportFrom} → {reportTo}</span>
-            }
+            {reportMonth && (
+              <span className="badge bg-info text-dark me-1">
+                {new Date(reportMonth + "-01").toLocaleString("en-IN", { month: "long", year: "numeric" })}
+              </span>
+            )}
+            {reportFrom && reportTo && (
+              <span className="badge bg-warning text-dark me-1">{reportFrom} to {reportTo}</span>
+            )}
+            {reportCategory && (
+              <span className="badge bg-primary me-1">
+                {categories.find(c => String(c.id) === String(reportCategory))?.name || "Category"}
+              </span>
+            )}
+            {reportVendor && (
+              <span className="badge bg-success me-1">
+                {vendors.find(v => String(v.id) === String(reportVendor))?.name || "Vendor"}
+              </span>
+            )}
             <button
               className="btn btn-sm btn-link text-danger ms-2 p-0"
-              onClick={() => { setReportMonth(""); setReportFrom(""); setReportTo(""); }}
+              onClick={() => {
+                setReportMonth("");
+                setReportFrom("");
+                setReportTo("");
+                setReportCategory("");
+                setReportVendor("");
+                setReportGenerated(false);
+                setReportData([]);
+              }}
             >
               Clear
             </button>
