@@ -103,7 +103,21 @@ const [filterTo,       setFilterTo]      = useState("");
 const [backupLoading, setBackupLoading] = useState(false);
 const [backupMsg,     setBackupMsg]     = useState(null);
 const [backupHistory, setBackupHistory] = useState([]);
+const [backupStatus,  setBackupStatus]  = useState(null);
 const [historyLoading, setHistoryLoading] = useState(false);
+
+const fetchBackupStatus = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${BASE_URL}/api/backup/status`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.success) setBackupStatus(data);
+  } catch (err) {
+    console.error("Backup status fetch failed:", err);
+  }
+};
 
 const fetchBackupHistory = async () => {
   setHistoryLoading(true);
@@ -149,7 +163,10 @@ const handleManualBackup = async () => {
 
 // fetch history when backup tab opens
 useEffect(() => {
-  if (activeTab === "backup") fetchBackupHistory();
+  if (activeTab === "backup") {
+    fetchBackupStatus();
+    fetchBackupHistory();
+  }
 }, [activeTab]);
 
 // ── Add this state inside your AdminPage component ──────────End
@@ -1629,7 +1646,7 @@ const uniqueUsers = [...new Map(invoices.map(i => [i.user_id, { id: i.user_id, u
           }}>
             <span style={{ color: "#888", fontSize: "13px" }}>Schedule</span>
             <span style={{ color: "#a5b4fc", fontWeight: 600, fontSize: "14px" }}>
-              Manual only
+              {backupStatus?.schedule || "Daily 2:00 AM IST"}
             </span>
           </div>
 
@@ -1673,14 +1690,14 @@ const uniqueUsers = [...new Map(invoices.map(i => [i.user_id, { id: i.user_id, u
           }}>
             <span style={{ color: "#888", fontSize: "13px" }}>Status</span>
             <span style={{
-              background: "#2d1f06",
-              color: "#facc15",
+              background: backupStatus?.autoBackup ? "#052e16" : "#2d1f06",
+              color: backupStatus?.autoBackup ? "#4ade80" : "#facc15",
               padding: "3px 10px",
               borderRadius: "20px",
               fontSize: "12px",
               fontWeight: 600
             }}>
-              Auto not supported
+              {backupStatus?.autoBackup ? "Auto active" : "Setup needed"}
             </span>
           </div>
         </div>
