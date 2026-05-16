@@ -7,8 +7,8 @@ const { runBackup } = require("../utils/backupService");
 
 const router = express.Router();
 
-const getBackupSchedule = () => process.env.BACKUP_CRON || "0 2 * * *";
-const getBackupScheduleLabel = () => "Daily 2:00 AM IST";
+const getBackupSchedule = () => process.env.BACKUP_CRON || "50 11 * * *";
+const getBackupScheduleLabel = () => "Daily 11:50 AM IST";
 const isSchedulerEnabled = () => process.env.AUTO_BACKUP_ENABLED === "true";
 const isExternalCronEnabled = () => Boolean(process.env.BACKUP_CRON_SECRET);
 
@@ -121,7 +121,7 @@ router.all("/auto-run", async (req, res) => {
   }
 });
 
-// ── Auto scheduler — 2:00 AM IST every day ───────────────────
+// ── Auto scheduler — 11:50 AM IST every day ───────────────────
 function startAutoBackupScheduler() {
   if (!isSchedulerEnabled()) {
     console.log("[Auto Backup] Disabled. Set AUTO_BACKUP_ENABLED=true to enable scheduler.");
@@ -131,7 +131,7 @@ function startAutoBackupScheduler() {
   cron.schedule(
   getBackupSchedule(),
   async () => {
-    console.log("[Auto Backup] 2:00 AM IST triggered —", new Date().toISOString());
+    console.log("[Auto Backup] 11:50 AM IST triggered —", new Date().toISOString());
     try {
       const r = await runAutoBackup();
 
@@ -142,7 +142,7 @@ function startAutoBackupScheduler() {
   },
   { timezone: "Asia/Kolkata" }
 );
-  console.log("[Auto Backup] ✅ Scheduler ready — 2:00 AM IST daily");
+  console.log("[Auto Backup] ✅ Scheduler ready — 11:50 AM IST daily");
 }
 
 // GET /api/backup/history — last 10 backups
